@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Green Wave-Surfing Geese</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Lora:ital,wght@0,400;0,600;1,400&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#060e06;font-family:'Lora',serif;overflow:hidden;user-select:none;width:100vw;height:100vh;}
+
+#intro{
+  position:fixed;inset:0;z-index:50;
+  background:linear-gradient(170deg,#071407 0%,#0e2a0e 50%,#071407 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:16px;overflow-y:auto;gap:12px;
+}
+#intro::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 50% 30%,rgba(60,160,40,.12),transparent);pointer-events:none;}
+.ititle{font-family:'Playfair Display',serif;font-weight:900;font-size:clamp(1.5rem,4vw,2.6rem);color:#a8e040;letter-spacing:.04em;text-shadow:0 0 32px rgba(120,220,40,.5);text-align:center;}
+.isubtitle{color:#5a9030;font-style:italic;font-size:.9rem;text-align:center;margin-top:-6px;}
+.info-box{background:rgba(10,28,10,.88);border:1px solid rgba(80,160,40,.3);border-radius:10px;padding:14px 18px;max-width:520px;width:100%;box-shadow:0 0 40px rgba(40,100,10,.2);}
+.info-box h2{font-family:'Playfair Display',serif;color:#88cc38;font-size:1rem;margin-bottom:7px;border-bottom:1px solid rgba(80,160,40,.25);padding-bottom:4px;}
+.info-box p{color:#b0d880;font-size:.85rem;line-height:1.58;margin-bottom:6px;}
+.info-box p:last-child{margin-bottom:0;}
+.hl{color:#cef060;font-weight:600;}
+
+.goose-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:8px;}
+.gcard{background:rgba(6,18,6,.92);border:2px solid rgba(55,120,28,.45);border-radius:8px;padding:10px 8px 8px;cursor:pointer;transition:all .16s;text-align:center;}
+.gcard:hover{border-color:#60b828;background:rgba(16,48,10,.9);}
+.gcard.sel{border-color:#78d030;background:rgba(18,52,10,.95);box-shadow:0 0 16px rgba(80,190,30,.35);}
+.gcard canvas{display:block;margin:0 auto 6px;}
+.gcard h4{color:#b0dc50;font-family:'Playfair Display',serif;font-size:.82rem;margin-bottom:3px;}
+.gcard p{color:#5a9030;font-size:.7rem;font-style:italic;line-height:1.35;}
+
+.sbtn{background:linear-gradient(135deg,#3a7c14,#5ab020);color:#f0ffe0;border:none;border-radius:7px;padding:11px 44px;font-size:1rem;font-family:'Playfair Display',serif;cursor:pointer;letter-spacing:.05em;box-shadow:0 4px 18px rgba(70,150,20,.4);transition:all .18s;}
+.sbtn:hover{transform:translateY(-2px);box-shadow:0 6px 26px rgba(70,150,20,.6);}
+
+.diff-box{background:rgba(10,28,10,.88);border:1px solid rgba(80,160,40,.3);border-radius:10px;padding:14px 18px;max-width:520px;width:100%;box-shadow:0 0 40px rgba(40,100,10,.2);}
+.diff-box h2{font-family:'Playfair Display',serif;color:#88cc38;font-size:1rem;margin-bottom:12px;border-bottom:1px solid rgba(80,160,40,.25);padding-bottom:4px;}
+.diff-row{display:flex;align-items:center;gap:12px;}
+.diff-label{color:rgba(170,228,90,.75);font-size:.8rem;white-space:nowrap;width:64px;}
+.diff-label.right{text-align:right;}
+#diffSlider{flex:1;-webkit-appearance:none;appearance:none;height:6px;border-radius:3px;background:linear-gradient(90deg,#2a6010,#88cc30);outline:none;cursor:pointer;}
+#diffSlider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#78d030,#4a9018);border:2px solid rgba(255,255,255,.3);cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.4);}
+#diffSlider::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#78d030,#4a9018);border:2px solid rgba(255,255,255,.3);cursor:pointer;}
+.diff-value{color:#cef060;font-family:'Playfair Display',serif;font-size:.9rem;min-width:80px;text-align:center;}
+
+/* ── GAME ── */
+#game{display:none;position:relative;width:100vw;height:100vh;}
+#gc{display:block;position:absolute;top:0;left:0;}
+#hud{position:absolute;top:10px;left:10px;display:flex;flex-direction:column;gap:5px;pointer-events:none;z-index:10;}
+.bar-row{display:flex;align-items:center;gap:6px;}
+.blabel{color:rgba(175,225,95,.8);font-size:.72rem;width:42px;}
+.btrack{width:100px;height:8px;background:rgba(0,0,0,.55);border-radius:4px;border:1px solid rgba(255,255,255,.1);overflow:hidden;}
+.bfill{height:100%;border-radius:4px;transition:width .18s;}
+#hfill{background:linear-gradient(90deg,#c83030,#ff5030);}
+#efill{background:linear-gradient(90deg,#1870d0,#38b8ff);}
+#hudright{position:absolute;top:10px;right:12px;color:rgba(185,228,105,.85);font-size:.76rem;text-align:right;pointer-events:none;line-height:1.75;z-index:10;}
+#lives-display{position:absolute;top:142px;left:50%;transform:translateX(-50%);display:flex;gap:5px;pointer-events:none;z-index:10;}
+#minimap{position:absolute;top:6px;left:50%;transform:translateX(-50%);width:124px;height:134px;pointer-events:none;z-index:10;}
+#mmcanvas{display:block;}
+#mmlabel{position:absolute;bottom:0;left:0;right:0;text-align:center;color:rgba(175,238,75,.82);font-size:.6rem;font-family:'Lora',serif;text-shadow:0 1px 4px rgba(0,0,0,.9);}
+#tinfo{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);color:rgba(165,228,85,.7);font-size:.72rem;font-style:italic;pointer-events:none;white-space:nowrap;z-index:10;}
+#flash{position:absolute;inset:0;pointer-events:none;border:4px solid transparent;z-index:9;}
+#flash.fred{border-color:rgba(255,35,35,.7);background:rgba(255,35,35,.07);}
+#flash.fgreen{border-color:rgba(55,255,55,.5);background:rgba(55,200,35,.05);}
+#overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:20;}
+#msgbox{background:rgba(4,18,4,.95);border:1px solid rgba(70,160,30,.5);border-radius:12px;padding:26px 44px;text-align:center;display:none;pointer-events:all;}
+#msgbox h2{font-family:'Playfair Display',serif;color:#a8e040;font-size:1.65rem;margin-bottom:8px;}
+#msgbox p{color:#88be58;font-size:.92rem;margin-bottom:16px;max-width:340px;}
+#msgbox button{background:linear-gradient(135deg,#3a7c14,#5ab020);color:#f0ffe0;border:none;border-radius:6px;padding:8px 30px;font-size:.9rem;font-family:'Playfair Display',serif;cursor:pointer;}
+#hint{position:absolute;bottom:42px;left:50%;transform:translateX(-50%);background:rgba(4,18,4,.82);border:1px solid rgba(70,160,30,.35);border-radius:7px;padding:5px 14px;color:rgba(165,228,85,.9);font-size:.75rem;pointer-events:none;transition:opacity 1.4s;white-space:nowrap;z-index:10;}
+</style>
+</head>
+<body>
+
+<!-- ═══ INTRO ═══ -->
+<div id="intro">
+  <div class="ititle">🪿 Green Wave-Surfing Geese</div>
+  <div class="isubtitle">Surf the spring green wave on your epic migration northward</div>
+
+  <div class="info-box">
+    <h2>🌿 The Green Wave</h2>
+    <p>Every spring a <span class="hl">wave of fresh plant growth</span> sweeps northward across Europe and North America. Migratory geese have evolved to <span class="hl">surf this wave</span> — timing their journey to stay in step with nutritious young grass at each stopover.</p>
+    <p><em>Steer <b>← →</b> to stay inside the green corridor. Press <b>SPACE</b> to fire 💩 poop at eagles and hunters. Reach your breeding ground!</em></p>
+  </div>
+
+  <div class="info-box">
+    <h2>🪿 Choose Your Goose &amp; Migration Route</h2>
+    <div class="goose-grid">
+      <div class="gcard sel" id="c-barnacle">
+        <canvas id="prev-barnacle" width="80" height="62"></canvas>
+        <h4>Barnacle Goose</h4>
+        <p>🇳🇱 Netherlands → 🇳🇴 Norway<br>White face · black neck</p>
+      </div>
+      <div class="gcard" id="c-whitefront">
+        <canvas id="prev-whitefront" width="80" height="62"></canvas>
+        <h4>White-fronted Goose</h4>
+        <p>🇳🇱 Netherlands → 🇳🇴 Norway<br>Brown · speckled belly</p>
+      </div>
+      <div class="gcard" id="c-snow">
+        <canvas id="prev-snow" width="80" height="62"></canvas>
+        <h4>Snow Goose</h4>
+        <p>🇺🇸 Texas → 🇨🇦 Canada<br>Pure white · pink bill</p>
+      </div>
+      <div class="gcard" id="c-canada">
+        <canvas id="prev-canada" width="80" height="62"></canvas>
+        <h4>Canada Goose</h4>
+        <p>🇺🇸 Texas → 🇨🇦 Canada<br>Black neck · white chinstrap</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="diff-box">
+    <h2>⚔️ Difficulty</h2>
+    <div class="diff-row">
+      <span class="diff-label">🕊️ Easy</span>
+      <input type="range" id="diffSlider" min="1" max="5" value="3" step="1">
+      <span class="diff-label right">🦅 Hard</span>
+      <span class="diff-value" id="diffLabel">Normal</span>
+    </div>
+  </div>
+
+  <button class="sbtn" id="startBtn">Begin Migration →</button>
+</div>
+
+<!-- ═══ GAME ═══ -->
+<div id="game">
+  <canvas id="gc"></canvas>
+  <div id="hud">
+    <div class="bar-row"><div class="blabel">Health</div><div class="btrack"><div class="bfill" id="hfill" style="width:100%"></div></div></div>
+    <div class="bar-row"><div class="blabel">Energy</div><div class="btrack"><div class="bfill" id="efill" style="width:100%"></div></div></div>
+  </div>
+  <div id="lives-display"></div>
+  <div id="hudright">
+    <div id="hregion">—</div>
+    <div id="hprog">0%</div>
+    <div id="hscore">Score: 0</div>
+  </div>
+  <div id="minimap">
+    <canvas id="mmcanvas" width="124" height="124"></canvas>
+    <div id="mmlabel"></div>
+  </div>
+  <div id="tinfo"></div>
+  <div id="flash"></div>
+  <div id="hint">← → steer · SPACE = shoot 💩 poop · stay on the 🌿 green wave!</div>
+  <div id="overlay">
+    <div id="msgbox">
+      <h2 id="mtitle">—</h2>
+      <p id="mbody">—</p>
+      <button id="retryBtn">Fly Again</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  All event wiring done after DOM ready — no inline onclick
+// ═══════════════════════════════════════════════
+(function(){
+
+// ── INPUT ──────────────────────────────────────
+const K = {};
+window.addEventListener('keydown', e => {
+  K[e.key] = true;
+  if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault();
+});
+window.addEventListener('keyup', e => { K[e.key] = false; });
+// ── AUDIO ENGINE (Web Audio API — no files needed) ─────────────
+var audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+// Generic envelope helper: attack→sustain→release
+function playTone(freq, type, vol, attack, sustain, release, startTime, ctx) {
+  try {
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = type; osc.frequency.setValueAtTime(freq, startTime);
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(vol, startTime + attack);
+    gain.gain.setValueAtTime(vol, startTime + attack + sustain);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + attack + sustain + release);
+    osc.start(startTime); osc.stop(startTime + attack + sustain + release + 0.01);
+  } catch(e) {}
+}
+
+// HONK — goose hit. Two-tone nasal squawk: drop from ~500→300 Hz with vibrato
+function sndHonk() {
+  try {
+    var ctx = getAudio(), t = ctx.currentTime;
+    // Main honk body
+    var osc = ctx.createOscillator();
+    var vib = ctx.createOscillator();
+    var vibGain = ctx.createGain();
+    var gain = ctx.createGain();
+    vib.connect(vibGain); vibGain.connect(osc.frequency);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sawtooth';
+    vib.type = 'sine'; vib.frequency.value = 14;
+    vibGain.gain.value = 28;
+    osc.frequency.setValueAtTime(480, t);
+    osc.frequency.exponentialRampToValueAtTime(270, t+0.18);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.38, t+0.02);
+    gain.gain.setValueAtTime(0.35, t+0.12);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t+0.28);
+    vib.start(t); vib.stop(t+0.3);
+    osc.start(t); osc.stop(t+0.3);
+    // Second honk syllable slightly after
+    var osc2 = ctx.createOscillator();
+    var gain2 = ctx.createGain();
+    osc2.connect(gain2); gain2.connect(ctx.destination);
+    osc2.type = 'sawtooth';
+    osc2.frequency.setValueAtTime(400, t+0.2);
+    osc2.frequency.exponentialRampToValueAtTime(220, t+0.38);
+    gain2.gain.setValueAtTime(0, t+0.2);
+    gain2.gain.linearRampToValueAtTime(0.28, t+0.22);
+    gain2.gain.exponentialRampToValueAtTime(0.0001, t+0.42);
+    osc2.start(t+0.2); osc2.stop(t+0.44);
+  } catch(e) {}
+}
+
+// POOP SHOOT — wet comic splat-whoosh
+function sndShoot() {
+  try {
+    var ctx = getAudio(), t = ctx.currentTime;
+    // Rising whistle
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(300, t);
+    osc.frequency.exponentialRampToValueAtTime(900, t+0.12);
+    gain.gain.setValueAtTime(0.18, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t+0.14);
+    osc.start(t); osc.stop(t+0.15);
+    // Soft body thud
+    var buf = ctx.createBuffer(1, ctx.sampleRate*0.06, ctx.sampleRate);
+    var data = buf.getChannelData(0);
+    for (var i=0; i<data.length; i++) data[i] = (Math.random()*2-1) * Math.pow(1-i/data.length, 2) * 0.35;
+    var src = ctx.createBufferSource();
+    src.buffer = buf;
+    var bpf = ctx.createBiquadFilter(); bpf.type='bandpass'; bpf.frequency.value=280; bpf.Q.value=1.5;
+    src.connect(bpf); bpf.connect(ctx.destination);
+    src.start(t+0.08);
+  } catch(e) {}
+}
+
+// SPLAT — poop hits enemy
+function sndSplat() {
+  try {
+    var ctx = getAudio(), t = ctx.currentTime;
+    // Wet smack noise burst
+    var buf = ctx.createBuffer(1, ctx.sampleRate*0.18, ctx.sampleRate);
+    var data = buf.getChannelData(0);
+    for (var i=0; i<data.length; i++) {
+      var env = i < ctx.sampleRate*0.02 ? i/(ctx.sampleRate*0.02) : Math.pow(1-(i-ctx.sampleRate*0.02)/(ctx.sampleRate*0.16), 1.8);
+      data[i] = (Math.random()*2-1) * env * 0.55;
+    }
+    var src = ctx.createBufferSource(); src.buffer = buf;
+    var lpf = ctx.createBiquadFilter(); lpf.type='lowpass'; lpf.frequency.value=600;
+    src.connect(lpf); lpf.connect(ctx.destination);
+    src.start(t);
+    // Comic descending gliss
+    var osc = ctx.createOscillator(); var g = ctx.createGain();
+    osc.connect(g); g.connect(ctx.destination);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(500, t); osc.frequency.exponentialRampToValueAtTime(80, t+0.2);
+    g.gain.setValueAtTime(0.22, t); g.gain.exponentialRampToValueAtTime(0.0001, t+0.22);
+    osc.start(t); osc.stop(t+0.24);
+  } catch(e) {}
+}
+
+// EAGLE SCREECH — high piercing cry
+function sndEagleScreech() {
+  try {
+    var ctx = getAudio(), t = ctx.currentTime;
+    var osc = ctx.createOscillator();
+    var vib = ctx.createOscillator();
+    var vibGain = ctx.createGain();
+    var gain = ctx.createGain();
+    vib.connect(vibGain); vibGain.connect(osc.frequency);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sawtooth';
+    vib.type = 'sine'; vib.frequency.value = 8; vibGain.gain.value = 40;
+    osc.frequency.setValueAtTime(1800, t);
+    osc.frequency.setValueAtTime(1400, t+0.06);
+    osc.frequency.exponentialRampToValueAtTime(900, t+0.22);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.12, t+0.02);
+    gain.gain.setValueAtTime(0.10, t+0.16);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t+0.28);
+    vib.start(t); vib.stop(t+0.3);
+    osc.start(t); osc.stop(t+0.3);
+  } catch(e) {}
+}
+
+// GUNSHOT — hunter fires
+function sndGunshot() {
+  try {
+    var ctx = getAudio(), t = ctx.currentTime;
+    var buf = ctx.createBuffer(1, ctx.sampleRate*0.22, ctx.sampleRate);
+    var data = buf.getChannelData(0);
+    for (var i=0; i<data.length; i++) {
+      var env = Math.pow(Math.max(0, 1-i/(ctx.sampleRate*0.22)), 2.2);
+      data[i] = (Math.random()*2-1) * env;
+    }
+    var src = ctx.createBufferSource(); src.buffer = buf;
+    var hpf = ctx.createBiquadFilter(); hpf.type='highpass'; hpf.frequency.value=180;
+    var lpf = ctx.createBiquadFilter(); lpf.type='lowpass'; lpf.frequency.value=3000;
+    var gain = ctx.createGain(); gain.gain.value = 0.28;
+    src.connect(hpf); hpf.connect(lpf); lpf.connect(gain); gain.connect(ctx.destination);
+    src.start(t);
+    // Low boom
+    var osc = ctx.createOscillator(); var g2 = ctx.createGain();
+    osc.connect(g2); g2.connect(ctx.destination);
+    osc.type='sine'; osc.frequency.setValueAtTime(90,t); osc.frequency.exponentialRampToValueAtTime(30,t+0.12);
+    g2.gain.setValueAtTime(0.3,t); g2.gain.exponentialRampToValueAtTime(0.0001,t+0.14);
+    osc.start(t); osc.stop(t+0.15);
+  } catch(e) {}
+}
+
+// BULLET WHIZ — enemy bullet passes near goose
+function sndWhiz() {
+  try {
+    var ctx = getAudio(), t = ctx.currentTime;
+    var osc = ctx.createOscillator(); var gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1200, t); osc.frequency.exponentialRampToValueAtTime(400, t+0.12);
+    gain.gain.setValueAtTime(0.06, t); gain.gain.exponentialRampToValueAtTime(0.0001, t+0.13);
+    osc.start(t); osc.stop(t+0.14);
+  } catch(e) {}
+}
+
+// LIFE LOST — dramatic descending cry
+function sndLifeLost() {
+  try {
+    var ctx = getAudio(), t = ctx.currentTime;
+    // Big honk then falling sad chord
+    sndHonk();
+    [0, 0.32, 0.58].forEach(function(delay, i) {
+      var freqs = [220, 174, 130];
+      playTone(freqs[i], 'sawtooth', 0.18, 0.03, 0.12, 0.28, t+delay, ctx);
+    });
+  } catch(e) {}
+}
+
+// GREEN WAVE CHIME — soft ping when entering green corridor
+function sndGreenPing() {
+  try {
+    var ctx = getAudio(), t = ctx.currentTime;
+    playTone(880, 'sine', 0.07, 0.005, 0.04, 0.3, t, ctx);
+    playTone(1320, 'sine', 0.04, 0.005, 0.02, 0.25, t+0.04, ctx);
+  } catch(e) {}
+}
+
+// VICTORY — cheerful ascending fanfare
+function sndVictory() {
+  try {
+    var ctx = getAudio(), t = ctx.currentTime;
+    var melody = [523,659,784,1047,784,659,1047];
+    var times  = [0, 0.14, 0.28, 0.42, 0.56, 0.66, 0.76];
+    melody.forEach(function(f,i){
+      playTone(f, 'triangle', 0.22, 0.01, 0.1, 0.18, t+times[i], ctx);
+      playTone(f*0.75, 'sine', 0.10, 0.01, 0.1, 0.18, t+times[i], ctx);
+    });
+  } catch(e) {}
+}
+
+// GAME OVER — slow descending tones
+function sndGameOver() {
+  try {
+    var ctx = getAudio(), t = ctx.currentTime;
+    [440,330,220,165].forEach(function(f,i){
+      playTone(f, 'sawtooth', 0.15, 0.02, 0.18, 0.35, t+i*0.22, ctx);
+    });
+  } catch(e) {}
+}
+
+// Track green corridor entry for chime
+var wasOnGreen = false;
+var eagleScreechCooldown = 0; // frames
+
+
+
+// ── GOOSE DRAWING ──────────────────────────────
+function drawGoose(ctx, type, cx, cy, sc) {
+  sc = sc || 1;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(sc, sc);
+
+  if (type === 'barnacle') {
+    ctx.fillStyle='#d4d4d4'; ctx.beginPath(); ctx.ellipse(0,2,7,12,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#141414'; ctx.beginPath(); ctx.ellipse(0,-4,5,7,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#141414'; ctx.beginPath(); ctx.arc(0,-14,5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#f0f0ea'; ctx.beginPath(); ctx.ellipse(0,-15,3.2,3.5,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#1a1a1a'; ctx.beginPath(); ctx.ellipse(0,-20.5,1.4,3,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#96989e'; ctx.beginPath(); ctx.ellipse(0,-1,6,9,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#72748a';
+    ctx.beginPath(); ctx.moveTo(-7,2); ctx.bezierCurveTo(-26,-2,-30,4,-25,9); ctx.bezierCurveTo(-17,12,-7,8,-7,2); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(7,2);  ctx.bezierCurveTo(26,-2,30,4,25,9);   ctx.bezierCurveTo(17,12,7,8,7,2);   ctx.closePath(); ctx.fill();
+    ctx.fillStyle='rgba(20,20,40,.5)'; ctx.beginPath(); ctx.ellipse(-22,6,5,2.5,-.25,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(22,6,5,2.5,.25,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(0,12,4,4,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#1a1a1a'; ctx.beginPath(); ctx.moveTo(-4,16); ctx.lineTo(0,22); ctx.lineTo(4,16); ctx.closePath(); ctx.fill();
+
+  } else if (type === 'whitefront') {
+    ctx.fillStyle='#7a6040'; ctx.beginPath(); ctx.ellipse(0,2,7,12,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#6a5030'; ctx.beginPath(); ctx.ellipse(0,-1,6,9,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#c0a870'; ctx.beginPath(); ctx.ellipse(0,6,5,6,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#1a1408';
+    for (var i=-1; i<=1; i++) { ctx.beginPath(); ctx.ellipse(i*2.5,6.5,1.7,1.1,i*.3,0,Math.PI*2); ctx.fill(); }
+    ctx.fillStyle='#4a3520'; ctx.beginPath(); ctx.ellipse(0,-5,5,8,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(0,-14,5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#eeeede'; ctx.beginPath(); ctx.ellipse(0,-17,2.4,2.5,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#d06028'; ctx.beginPath(); ctx.ellipse(0,-21,1.7,3,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#60502a';
+    ctx.beginPath(); ctx.moveTo(-7,0); ctx.bezierCurveTo(-25,-4,-28,2,-23,8); ctx.bezierCurveTo(-16,11,-7,6,-7,0); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(7,0);  ctx.bezierCurveTo(25,-4,28,2,23,8);   ctx.bezierCurveTo(16,11,7,6,7,0);   ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='rgba(140,120,70,.45)'; ctx.lineWidth=1.1;
+    for (var x=14; x<=22; x+=3) { ctx.beginPath(); ctx.moveTo(-x,2); ctx.lineTo(-x,6); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x,2); ctx.lineTo(x,6); ctx.stroke(); }
+    ctx.fillStyle='#e0d8c0'; ctx.beginPath(); ctx.ellipse(0,12,4,4,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#2a2010'; ctx.beginPath(); ctx.moveTo(-4,16); ctx.lineTo(0,22); ctx.lineTo(4,16); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#d8d0b0'; ctx.beginPath(); ctx.moveTo(-2,18); ctx.lineTo(0,22); ctx.lineTo(2,18); ctx.closePath(); ctx.fill();
+
+  } else if (type === 'snow') {
+    ctx.fillStyle='#f2f2f2'; ctx.beginPath(); ctx.ellipse(0,2,7,12,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(170,170,195,.22)'; ctx.beginPath(); ctx.ellipse(0,-1,5,8,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#f2f2f2'; ctx.beginPath(); ctx.arc(0,-14,5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#c84060'; ctx.beginPath(); ctx.ellipse(0,-20.5,1.7,3,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#180010'; ctx.beginPath(); ctx.ellipse(0,-19.5,.9,.8,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#e6e6ee';
+    ctx.beginPath(); ctx.moveTo(-7,0); ctx.bezierCurveTo(-25,-4,-28,2,-23,8); ctx.bezierCurveTo(-15,12,-7,7,-7,0); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(7,0);  ctx.bezierCurveTo(25,-4,28,2,23,8);   ctx.bezierCurveTo(15,12,7,7,7,0);   ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#111'; ctx.beginPath(); ctx.ellipse(-21,5,5,2.5,.3,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(21,5,5,2.5,-.3,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#f0f0f8'; ctx.beginPath(); ctx.moveTo(-4,16); ctx.lineTo(0,22); ctx.lineTo(4,16); ctx.closePath(); ctx.fill();
+
+  } else if (type === 'canada') {
+    ctx.fillStyle='#8a6c3a'; ctx.beginPath(); ctx.ellipse(0,2,8,13,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#7a5c2c'; ctx.beginPath(); ctx.ellipse(0,-1,7,10,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#c8a870'; ctx.beginPath(); ctx.ellipse(0,6,6,7,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#111'; ctx.beginPath(); ctx.ellipse(0,-6,4,8,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(0,-15,5.5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#f0f0e8'; ctx.beginPath(); ctx.ellipse(0,-11,4,2.5,.1,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#1a1a1a'; ctx.beginPath(); ctx.ellipse(0,-21.5,1.6,3,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#6a5030';
+    ctx.beginPath(); ctx.moveTo(-8,0); ctx.bezierCurveTo(-28,-5,-32,2,-26,9); ctx.bezierCurveTo(-18,13,-8,8,-8,0); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(8,0);  ctx.bezierCurveTo(28,-5,32,2,26,9);   ctx.bezierCurveTo(18,13,8,8,8,0);   ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='rgba(110,90,50,.5)'; ctx.lineWidth=1;
+    for (var x=16; x<=25; x+=3) { ctx.beginPath(); ctx.moveTo(-x,1); ctx.lineTo(-x,7); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x,1); ctx.lineTo(x,7); ctx.stroke(); }
+    ctx.fillStyle='#e8e8e0'; ctx.beginPath(); ctx.ellipse(0,13,5,4,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#111'; ctx.beginPath(); ctx.moveTo(-5,17); ctx.lineTo(0,24); ctx.lineTo(5,17); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// Eagle
+function drawEagle(ctx, x, y, sc) {
+  sc = sc || 1;
+  ctx.save(); ctx.translate(x,y); ctx.scale(sc,sc);
+  ctx.fillStyle='#3c2008'; ctx.beginPath(); ctx.ellipse(0,0,6,13,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#ddd8c8'; ctx.beginPath(); ctx.arc(0,-13,5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#d8a010'; ctx.beginPath(); ctx.ellipse(0,-19,2,3,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#dcd6c4'; ctx.beginPath(); ctx.moveTo(-4,14); ctx.lineTo(0,20); ctx.lineTo(4,14); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#2e1a04';
+  ctx.beginPath(); ctx.moveTo(-6,-2); ctx.bezierCurveTo(-28,-8,-34,0,-28,8); ctx.bezierCurveTo(-20,13,-6,8,-6,-2); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(6,-2);  ctx.bezierCurveTo(28,-8,34,0,28,8);   ctx.bezierCurveTo(20,13,6,8,6,-2);   ctx.closePath(); ctx.fill();
+  ctx.fillStyle='rgba(70,40,10,.4)';
+  ctx.beginPath(); ctx.ellipse(-22,3,8,3,-.3,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(22,3,8,3,.3,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+// Hunter
+function drawHunter(ctx, x, y, sc) {
+  sc = sc || 1;
+  ctx.save(); ctx.translate(x,y); ctx.scale(sc,sc);
+  ctx.fillStyle='rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(0,2,10,7,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#384820'; ctx.beginPath(); ctx.ellipse(0,3,5,6,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#281808'; ctx.beginPath(); ctx.arc(0,-6,5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#181008'; ctx.beginPath(); ctx.ellipse(0,-7.5,7,2.5,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#111'; ctx.lineWidth=2.2;
+  ctx.beginPath(); ctx.moveTo(4,-3); ctx.lineTo(4,-15); ctx.stroke();
+  if (Math.random() > .88) { ctx.fillStyle='rgba(255,200,50,.85)'; ctx.beginPath(); ctx.arc(4,-16,3,0,Math.PI*2); ctx.fill(); }
+  ctx.restore();
+}
+
+// Poop
+function drawPoop(ctx, x, y, r) {
+  r = r || 7;
+  ctx.save(); ctx.translate(x,y);
+  ctx.fillStyle='#5a3010'; ctx.beginPath(); ctx.ellipse(0,2,r*.8,r*.55,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#6a3a14'; ctx.beginPath(); ctx.ellipse(0,0,r*.65,r*.6,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#7a4218'; ctx.beginPath(); ctx.ellipse(0,-r*.55,r*.45,r*.45,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#8a4a1c'; ctx.beginPath(); ctx.ellipse(0,-r*.95,r*.22,r*.28,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.25)'; ctx.beginPath(); ctx.ellipse(-r*.2,-r*.7,r*.12,r*.1,-.4,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+// ── RENDER PREVIEWS ────────────────────────────
+function renderPreviews() {
+  ['barnacle','whitefront','snow','canada'].forEach(function(t) {
+    var c = document.getElementById('prev-'+t);
+    if (!c) return;
+    var ctx = c.getContext('2d');
+    ctx.clearRect(0,0,80,62);
+    drawGoose(ctx, t, 40, 36, 1.25);
+  });
+}
+
+// ── MIGRATION ROUTES ────────────────────────────
+var ROUTES = {
+  barnacle: {
+    to:'Norway', fromLabel:'NL', toLabel:'Svalbard',
+    regions:[
+      {n:'Netherlands',p:0},{n:'North Sea',p:.07},{n:'Denmark',p:.14},
+      {n:'Kattegat',p:.21},{n:'S. Sweden',p:.27},{n:'Oslo Fjord',p:.37},
+      {n:'Central Norway',p:.50},{n:'Trondheim',p:.62},
+      {n:'N. Norway',p:.73},{n:'Finnmark',p:.84},{n:'Arctic Tundra 🎉',p:.95}
+    ],
+    latS:52, latE:78, lonS:5, lonE:20, isEurope:true
+  },
+  whitefront: {
+    to:'Norway', fromLabel:'NL', toLabel:'Svalbard',
+    regions:[
+      {n:'Netherlands',p:0},{n:'North Sea',p:.07},{n:'Denmark',p:.14},
+      {n:'Kattegat',p:.21},{n:'S. Sweden',p:.27},{n:'Oslo Fjord',p:.37},
+      {n:'Central Norway',p:.50},{n:'Trondheim',p:.62},
+      {n:'N. Norway',p:.73},{n:'Finnmark',p:.84},{n:'Arctic Tundra 🎉',p:.95}
+    ],
+    latS:52, latE:78, lonS:5, lonE:20, isEurope:true
+  },
+  snow: {
+    to:'Canada', fromLabel:'TX', toLabel:'Nunavut',
+    regions:[
+      {n:'Texas',p:0},{n:'Oklahoma',p:.08},{n:'Kansas',p:.16},
+      {n:'Nebraska',p:.25},{n:'S. Dakota',p:.34},{n:'N. Dakota',p:.43},
+      {n:'Manitoba',p:.55},{n:'Saskatchewan',p:.65},
+      {n:'NW Territories',p:.76},{n:'Nunavut',p:.86},{n:'Arctic Tundra 🎉',p:.95}
+    ],
+    latS:30, latE:70, lonS:-100, lonE:-85, isEurope:false
+  },
+  canada: {
+    to:'Canada', fromLabel:'TX', toLabel:'Nunavut',
+    regions:[
+      {n:'Texas',p:0},{n:'Oklahoma',p:.08},{n:'Kansas',p:.16},
+      {n:'Nebraska',p:.25},{n:'S. Dakota',p:.34},{n:'N. Dakota',p:.43},
+      {n:'Manitoba',p:.55},{n:'Saskatchewan',p:.65},
+      {n:'NW Territories',p:.76},{n:'Nunavut',p:.86},{n:'Arctic Tundra 🎉',p:.95}
+    ],
+    latS:30, latE:70, lonS:-100, lonE:-85, isEurope:false
+  }
+};
+
+function getRoute() { return ROUTES[selectedGoose] || ROUTES.barnacle; }
+function getRegion(p) {
+  var regs = getRoute().regions, r = regs[0];
+  for (var i=0; i<regs.length; i++) { if (p >= regs[i].p) r = regs[i]; else break; }
+  return r;
+}
+
+// ── TERRAIN ────────────────────────────────────
+var BAND_H = 56, TOTAL_BANDS = 300, SCROLL_SPEED = 0.5;
+var bands = [];
+function genBands() {
+  bands = [];
+  var cx = 0.5, cw = 0.28;
+  for (var i=0; i<TOTAL_BANDS; i++) {
+    var p = i/TOTAL_BANDS;
+    cx += (Math.random()-.5)*.055; cx = Math.max(.16, Math.min(.84, cx));
+    cw += (Math.random()-.5)*.02;
+    cw = p>.72 ? Math.max(.18, Math.min(.4, cw)) : Math.max(.11, Math.min(.36, cw));
+    var isSea = (p>.06&&p<.12)||(p>.21&&p<.26)||(p>.37&&p<.42);
+    var bg;
+    if (isSea) bg='water';
+    else if (p>.78) bg='tundra';
+    else if (p>.48) bg='conifer';
+    else if (p>.22) bg='forest';
+    else if (Math.random()>.74) bg='city';
+    else bg='field';
+    bands.push({cx:cx, cw:cw, bg:bg, p:p});
+  }
+}
+
+var BG = {
+  water:  ['#163870','#1a4488','#122e60'],
+  field:  ['#7a6838','#8a7848','#6a5828'],
+  forest: ['#1a5218','#1e5e1c','#164a14'],
+  conifer:['#0c3e0c','#0e4a0e','#0a380a'],
+  city:   ['#7a6e60','#8a7e70','#6a6050'],
+  tundra: ['#586858','#647464','#4e5e4e'],
+  green:  ['#249624','#2ca82e','#208820']
+};
+var TDMG  = {green:-.6, water:3.5, city:4, forest:2.5, conifer:2, field:.8, tundra:1};
+var TNAME = {
+  green:'🌿 Green wave — gaining health!', water:'💧 Open water — losing health!',
+  city:'🏙️ Urban area — pollution!',      forest:'🌳 Dense forest — damage!',
+  conifer:'🌲 Conifer forest — damage!',  field:'🌾 Farmland — mild risk',
+  tundra:'🏔️ Tundra — cold exposure'
+};
+
+function prand(n) { var s=Math.sin(n)*43758.5453; return s-Math.floor(s); }
+function curBandIdx() { return Math.min(TOTAL_BANDS-1, Math.floor(S.scroll/BAND_H)); }
+function getBand(i) { return bands[Math.max(0, Math.min(TOTAL_BANDS-1, i))]; }
+function terrainUnderGoose() {
+  var b = getBand(curBandIdx());
+  return (S.gx >= b.cx-b.cw && S.gx <= b.cx+b.cw) ? 'green' : b.bg;
+}
+
+// ── STATE ──────────────────────────────────────
+var gc, gctx, mmctx, running=false, raf=null;
+var selectedGoose = 'barnacle';
+var difficulty = 3; // 1=easiest … 5=hardest
+var spawnTimer = 80, poopCooldown = 0;
+
+var S = {
+  gx:.5, health:100, energy:100, score:0, lives:3,
+  scroll:0, progress:0, invincible:0,
+  bullets:[], enemies:[], particles:[], popups:[], lastTime:0
+};
+
+// ── HELPERS ────────────────────────────────────
+function flashEl(cls) {
+  var el = document.getElementById('flash');
+  el.className = cls;
+  setTimeout(function(){ el.className=''; }, 180);
+}
+function spawnPart(sx, sy, col, n) {
+  n = n||8;
+  for (var i=0; i<n; i++) {
+    var a=Math.random()*Math.PI*2, sp=1.5+Math.random()*3;
+    S.particles.push({x:sx,y:sy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:3+Math.random()*3,al:1,col:col});
+  }
+}
+function spawnSplat(x, y, pts) {
+  for (var i=0; i<14; i++) {
+    var a=Math.random()*Math.PI*2, sp=1+Math.random()*4.5;
+    var hue = 22+Math.random()*18, lig = 26+Math.random()*14;
+    S.particles.push({x:x,y:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:4+Math.random()*6,al:1,col:'hsl('+hue+',72%,'+lig+'%)'});
+  }
+  S.popups.push({x:x, y:y-14, vy:-1.2, al:1, text:'+'+pts, col:pts>=80?'#ffee40':'#a8ff40'});
+  sndSplat();
+}
+function renderLives() {
+  var d = document.getElementById('lives-display');
+  d.innerHTML = '';
+  for (var i=0; i<S.lives; i++) {
+    var c = document.createElement('canvas');
+    c.width=22; c.height=16;
+    drawGoose(c.getContext('2d'), selectedGoose, 11, 11, .44);
+    d.appendChild(c);
+  }
+}
+function takeDamage(amt) {
+  if (S.invincible>0) return;
+  S.health = Math.max(0, S.health-amt);
+  S.invincible = 70;
+  flashEl('fred');
+  sndHonk();
+  if (S.health<=0) loseLife();
+}
+function loseLife() {
+  S.lives--;
+  renderLives();
+  if (S.lives<=0) { endGame(false); return; }
+  sndLifeLost();
+  S.health=80; S.invincible=130; S.enemies=[]; S.bullets=[];
+}
+
+// ── ENEMIES ────────────────────────────────────
+function spawnEnemy(W) {
+  var p = S.progress;
+  // diff 1: 8% hunters … diff 5: 44% hunters
+  var hunterChance = 0.08 + (difficulty-1)*0.09;
+  var type = Math.random() < hunterChance ? 'hunter' : 'eagle';
+  var x = (.08+Math.random()*.84)*W;
+  var speedMult = 0.6 + (difficulty-1)*0.18; // 0.6x … 1.32x
+  var spd = (.38+Math.random()*.45+p*.3) * speedMult;
+  var baseShoot = 380 - (difficulty-1)*60; // 380 … 140 frames between shots
+  S.enemies.push({
+    type:type, x:x, y:-50, vy:spd,
+    vx:(Math.random()-.5)*(type==='eagle'?1.0:.3),
+    shootTimer: baseShoot + Math.random()*100,
+    wobble:Math.random()*Math.PI*2,
+    sc:type==='eagle'?1.1:.9
+  });
+  if (type==='eagle' && eagleScreechCooldown<=0) { sndEagleScreech(); eagleScreechCooldown=180; }
+}
+function updateEnemies(dt, W, H) {
+  var gsx=S.gx*W, gsy=H-68;
+  S.enemies = S.enemies.filter(function(e) {
+    e.y+=e.vy*dt; e.x+=e.vx*dt; e.wobble+=.035*dt;
+    if (e.type==='eagle') {
+      e.x+=Math.sin(e.wobble)*.5;
+      if (e.y>H*.25) {
+        var dx=gsx-e.x, dy=gsy-e.y, d=Math.sqrt(dx*dx+dy*dy)||1;
+        if (d<280) { e.vx+=dx/d*.03*dt; e.vy+=dy/d*.015*dt; }
+      }
+    }
+    if (e.type==='hunter') {
+      e.shootTimer-=dt;
+      if (e.shootTimer<=0) {
+        var dx=gsx-e.x, dy=gsy-e.y, d=Math.sqrt(dx*dx+dy*dy)||1;
+        var bulletSpd = 2.6 + (difficulty-1)*0.45; // 2.6 … 4.4
+        S.bullets.push({x:e.x, y:e.y, vx:dx/d*bulletSpd, vy:dy/d*bulletSpd, enemy:true});
+        sndGunshot();
+        var baseShoot2 = 380 - (difficulty-1)*60;
+        e.shootTimer = baseShoot2 + Math.random()*100;
+      }
+    }
+    if (e.x<18||e.x>W-18) e.vx*=-1;
+    var dx=e.x-gsx, dy=e.y-gsy;
+    if (Math.sqrt(dx*dx+dy*dy)<26 && S.invincible<=0) {
+      takeDamage(e.type==='eagle'?20:12);
+      spawnPart(gsx,gsy,'#ff8800');
+      e.y=H+200;
+    }
+    return e.y<H+80;
+  });
+}
+function updateBullets(dt, W, H) {
+  var gsx=S.gx*W, gsy=H-68;
+  if (poopCooldown>0) poopCooldown-=dt;
+  S.bullets = S.bullets.filter(function(b) {
+    b.x+=b.vx*dt; b.y+=b.vy*dt;
+    if (b.enemy) {
+      var dx=b.x-gsx, dy=b.y-gsy;
+      if (Math.sqrt(dx*dx+dy*dy)<15 && S.invincible<=0) {
+        takeDamage(15); spawnPart(gsx,gsy,'#ffcc00'); return false;
+      }
+    }
+    if (b.poop) {
+      for (var i=S.enemies.length-1; i>=0; i--) {
+        var e=S.enemies[i], dx=b.x-e.x, dy=b.y-e.y;
+        if (Math.sqrt(dx*dx+dy*dy)<28) {
+          var pts = e.type==='eagle' ? 50 : 80;
+          spawnSplat(e.x, e.y, pts);
+          S.score += pts;
+          S.enemies.splice(i,1);
+          return false;
+        }
+      }
+    }
+    return b.x>-10 && b.x<W+10 && b.y>-10 && b.y<H+10;
+  });
+}
+function maybeSpawn(dt, W) {
+  spawnTimer -= dt;
+  if (spawnTimer<=0) {
+    spawnEnemy(W);
+    // diff 1: long gaps (peaceful). diff 5: short gaps (relentless).
+    var lo = 140 - (difficulty-1)*24; // 140 … 44
+    var hi = 240 - (difficulty-1)*36; // 240 … 96
+    spawnTimer = Math.max(lo, hi - S.progress*50) + Math.random()*30;
+  }
+}
+function shootPoop(W, H) {
+  if (poopCooldown>0) return;
+  S.bullets.push({x:S.gx*W, y:H-98, vx:0, vy:-7, enemy:false, poop:true});
+  poopCooldown = 18;
+  sndShoot();
+}
+
+// ── TERRAIN DRAW ───────────────────────────────
+function drawTerrain(W, H) {
+  var pixOff = S.scroll%BAND_H;
+  var botIdx = curBandIdx();
+  var nBands = Math.ceil(H/BAND_H)+2;
+  var t = Date.now()*.001;
+  for (var i=0; i<nBands; i++) {
+    var bi = botIdx-i+1;
+    var sy = Math.floor(H-(i+1)*BAND_H+pixOff);
+    if (sy>H+BAND_H) continue;
+    var b = getBand(bi);
+    var gl=b.cx-b.cw, gr=b.cx+b.cw;
+    var bCols = BG[b.bg]||BG.field;
+    gctx.fillStyle = bCols[Math.abs(bi)%bCols.length];
+    gctx.fillRect(0,sy,W,BAND_H+1);
+    var seed = bi*71;
+    if (b.bg==='city') {
+      gctx.fillStyle='rgba(38,28,18,.55)';
+      for (var k=0; k<4; k++) gctx.fillRect(prand(seed+k*3)*W, sy+prand(seed+k*3+1)*BAND_H*.6, 12+prand(seed+k*3+2)*14, 14+prand(seed+k)*10);
+      gctx.fillStyle='rgba(255,200,50,.35)';
+      for (var k=0; k<5; k++) gctx.fillRect(prand(seed+k+20)*W, sy+prand(seed+k+21)*BAND_H*.75, 3, 3);
+    } else if (b.bg==='forest'||b.bg==='conifer') {
+      gctx.fillStyle = b.bg==='conifer'?'rgba(5,26,5,.68)':'rgba(8,42,8,.52)';
+      for (var k=0; k<7; k++) { gctx.beginPath(); gctx.arc(prand(seed+k*2+5)*W, sy+prand(seed+k*2+6)*BAND_H, 5+prand(seed+k)*5, 0, Math.PI*2); gctx.fill(); }
+    } else if (b.bg==='water') {
+      gctx.strokeStyle='rgba(80,155,230,.32)'; gctx.lineWidth=1;
+      for (var k=0; k<3; k++) { gctx.beginPath(); gctx.moveTo(8, sy+BAND_H*.2+k*BAND_H*.26+Math.sin(t*1.1+bi*.3)*4); gctx.lineTo(W-8, sy+BAND_H*.2+k*BAND_H*.26+Math.sin(t*1.1+bi*.3)*4); gctx.stroke(); }
+    } else if (b.bg==='tundra') {
+      gctx.fillStyle='rgba(130,175,130,.2)';
+      for (var k=0; k<5; k++) gctx.fillRect(prand(seed+k+30)*W, sy+prand(seed+k+31)*BAND_H*.8, 5+prand(seed+k+32)*6, 2);
+    }
+    gctx.fillStyle = BG.green[Math.abs(bi)%BG.green.length];
+    gctx.fillRect(gl*W, sy, (gr-gl)*W, BAND_H+1);
+    gctx.fillStyle='rgba(50,185,50,.2)';
+    for (var k=0; k<8; k++) gctx.fillRect(gl*W+prand(seed+k*2+50)*(gr-gl)*W, sy+prand(seed+k*2+51)*BAND_H*.8, 2, 6+prand(seed+k+60)*4);
+    gctx.strokeStyle='rgba(70,215,55,.55)'; gctx.lineWidth=2;
+    gctx.beginPath(); gctx.moveTo(gl*W,sy); gctx.lineTo(gl*W,sy+BAND_H+1); gctx.stroke();
+    gctx.beginPath(); gctx.moveTo(gr*W,sy); gctx.lineTo(gr*W,sy+BAND_H+1); gctx.stroke();
+  }
+}
+
+// ── GLOBE ──────────────────────────────────────
+// ── GLOBE PROJECTION ───────────────────────────
+// Orthographic projection centred on the active route's midpoint
+function globeProject(lat, lon, CX, CY, R, cLat, cLon) {
+  var phi  = lat  * Math.PI/180;
+  var lam  = (lon - cLon) * Math.PI/180;
+  var phi0 = cLat * Math.PI/180;
+  var cosPhi = Math.cos(phi), sinPhi = Math.sin(phi);
+  var cosLam = Math.cos(lam), sinLam = Math.sin(lam);
+  var cosPhi0= Math.cos(phi0), sinPhi0= Math.sin(phi0);
+  var dot = sinPhi0*sinPhi + cosPhi0*cosPhi*cosLam;
+  var x = R * cosPhi * sinLam;
+  var y = R * (cosPhi0*sinPhi - sinPhi0*cosPhi*cosLam);
+  return { sx: CX+x, sy: CY-y, vis: dot > -0.15 };
+}
+
+function drawLandPoly(m, coords, col, CX, CY, R, cLat, cLon) {
+  m.fillStyle = col;
+  m.beginPath();
+  var pen = false;
+  for (var i=0; i<coords.length; i++) {
+    var p = globeProject(coords[i][0], coords[i][1], CX, CY, R, cLat, cLon);
+    if (!p.vis) { pen = false; continue; }
+    if (!pen) { m.moveTo(p.sx, p.sy); pen=true; } else { m.lineTo(p.sx, p.sy); }
+  }
+  m.closePath(); m.fill();
+}
+
+// ── DETAILED COASTLINE DATA ─────────────────────
+// Europe: Western Europe + Scandinavia + Iberia + Italy + Balkans + UK + Greenland tip
+var LAND_EUROPE = [
+  // ----- Main European landmass (W coast → N → Scandinavia) -----
+  [36,-9],[36,-7],[37,-7],[38,-9],[38,-7],[39,-8],[40,-8],[41,-8],[42,-9],[43,-9],
+  [44,-8],[45,-6],[46,-2],[47,-2],[47,0],[48,-2],[48,1],[49,2],[50,2],[51,3],
+  [51,4],[52,4],[52,5],[53,8],[54,9],[54,10],[55,9],[55,10],[56,9],[57,10],
+  [57,12],[56,15],[56,16],[57,18],[58,17],[59,18],[60,18],[60,17],[61,17],
+  [62,14],[63,14],[64,15],[65,14],[66,14],[68,16],[69,18],[70,25],[71,26],
+  [71,28],[70,30],[69,30],[68,28],[68,20],[67,16],[66,14],[65,14],[64,11],
+  [63,8],[62,5],[61,4],[60,5],[59,5],[58,7],[57,8],[57,10],[56,10],[55,10],
+  [55,12],[54,12],[54,10],[53,10],[53,8],[52,5],[51,4],[51,3],[50,2],
+  [49,2],[48,2],[47,1],[46,1],[45,0],[44,-1],[43,-2],[43,-1],[44,1],[44,3],
+  [43,5],[43,6],[44,7],[44,8],[45,7],[45,9],[46,10],[47,12],[47,14],[48,16],
+  [48,17],[49,18],[49,20],[50,19],[51,17],[52,15],[53,14],[54,14],[54,16],
+  [53,17],[52,17],[51,15],[50,14],[49,14],[48,14],[47,13],[46,14],[45,14],
+  [44,16],[44,15],[43,16],[42,18],[43,20],[44,19],[45,18],[46,17],[47,16],
+  [48,17],[49,16],[50,18],[51,20],[50,22],[49,22],[48,22],[47,22],[46,20],
+  [45,20],[44,20],[44,21],[43,22],[42,23],[42,24],[43,26],[44,28],[45,30],
+  [46,30],[47,30],[48,26],[49,24],[50,24],[51,24],[52,22],[53,22],[54,22],
+  [55,22],[56,22],[57,22],[58,22],[59,22],[60,22],[61,24],[62,26],[63,26],
+  [64,26],[65,28],[66,28],[67,26],[68,24],[69,26],[70,28],[71,26],
+  [72,24],[73,22],[74,20],[75,18],[76,16],[77,16],[78,18],[79,22],[78,26],
+  [77,22],[76,16],[75,14],[74,12],[73,12],[72,14],[71,14],[70,18],
+  // back around
+  [68,16],[67,14],[66,14],[65,14],[64,13],[63,10],[62,8],[61,6],[60,4],
+  [59,4],[58,5],[57,4],[56,3],[55,4],[54,3],[53,4],[52,4],[51,3],[50,2],
+  [49,0],[48,-2],[47,-2],[46,-2],[45,-3],[44,-4],[43,-6],[42,-9],[41,-9],
+  [40,-9],[39,-9],[38,-9],[37,-8],[36,-8],[36,-9],
+  // UK outline
+  [50,-5],[50,-4],[51,-3],[51,-2],[52,-4],[52,-3],[53,-3],[53,-4],[54,-4],
+  [54,-3],[55,-2],[55,-1],[56,-3],[57,-3],[58,-5],[58,-4],[57,-2],[56,0],
+  [55,0],[54,-1],[53,0],[52,1],[51,1],[50,0],[50,-5],
+  // Ireland
+  [51,-9],[52,-10],[53,-10],[54,-8],[55,-7],[54,-6],[53,-6],[52,-7],[51,-9],
+];
+
+// Greenland (partial visible from Europe view)
+var GREENLAND_E = [
+  [60,-46],[62,-48],[64,-52],[66,-54],[68,-54],[70,-52],[72,-52],[74,-56],
+  [76,-60],[78,-64],[80,-64],[82,-60],[83,-50],[82,-40],[80,-36],[78,-30],
+  [76,-24],[74,-22],[72,-24],[70,-26],[68,-28],[66,-34],[64,-40],[62,-44],[60,-46],
+];
+
+// Iceland
+var ICELAND = [
+  [63,-24],[64,-24],[65,-22],[66,-18],[66,-14],[65,-13],[64,-14],[63,-18],[63,-22],[63,-24],
+];
+
+// North America detailed outline (Texas → Canada → Alaska tip)
+var LAND_NAMERICA = [
+  // Gulf Coast Texas → Florida tip
+  [26,-97],[27,-97],[28,-97],[29,-95],[29,-94],[30,-89],[30,-88],[29,-87],
+  [28,-83],[25,-80],[25,-81],[26,-82],[27,-83],[28,-83],
+  // East coast Florida → Maine
+  [30,-81],[31,-80],[32,-81],[33,-80],[34,-78],[35,-76],[36,-76],[37,-76],
+  [38,-75],[39,-74],[40,-74],[41,-72],[42,-71],[43,-70],[44,-68],[45,-67],
+  [46,-64],[47,-63],[48,-66],[49,-64],[50,-64],[51,-57],[52,-56],[53,-57],
+  [54,-58],[55,-60],[57,-64],[59,-64],[60,-65],[61,-66],[62,-64],[63,-65],
+  [64,-64],[65,-68],[66,-70],[67,-70],[68,-70],[69,-68],[70,-68],[71,-70],
+  [72,-72],[73,-74],[74,-80],[74,-84],[73,-88],[72,-90],[72,-94],[71,-96],
+  [70,-98],[70,-100],[70,-104],[70,-108],[70,-112],[69,-115],[68,-116],
+  [67,-116],[66,-114],[65,-112],[64,-110],[63,-110],[62,-110],[61,-110],
+  [60,-110],[59,-110],[58,-108],[57,-106],[56,-104],[55,-103],[54,-102],
+  [53,-100],[52,-100],[51,-100],[50,-100],[50,-97],[49,-96],[49,-93],
+  [48,-90],[47,-88],[46,-84],[45,-83],[44,-82],[43,-79],[43,-76],
+  [44,-76],[44,-75],[45,-73],[45,-72],[44,-70],[44,-66],
+  // West coast Maine → Mexico
+  [44,-66],[43,-70],[42,-71],[41,-72],[40,-74],[39,-74],[38,-75],
+  [37,-76],[36,-76],[35,-77],[34,-78],[33,-80],[32,-81],[31,-81],
+  [30,-81],[30,-83],[29,-84],[29,-87],[30,-89],[30,-90],
+  // West coast Canada
+  [49,-124],[50,-125],[51,-128],[52,-128],[53,-130],[54,-130],[55,-130],
+  [56,-132],[57,-134],[58,-136],[58,-137],[59,-137],[60,-140],[61,-142],
+  [62,-144],[63,-148],[64,-150],[65,-152],[66,-154],[67,-156],[68,-160],
+  [69,-162],[70,-163],[70,-160],[71,-156],[71,-154],[70,-150],[69,-148],
+  [68,-144],[67,-140],[66,-138],[65,-136],[64,-136],[63,-138],[62,-140],
+  [61,-140],[60,-142],[59,-140],[58,-138],[57,-136],[56,-134],[55,-132],
+  [54,-130],[53,-129],[52,-128],[51,-126],[50,-125],[49,-124],[48,-124],
+  [47,-124],[46,-124],[45,-124],[44,-124],[43,-124],[42,-124],[41,-122],
+  [40,-122],[39,-120],[38,-122],[37,-122],[36,-122],[35,-120],[34,-118],
+  [33,-117],[32,-117],[31,-116],[30,-115],[29,-110],[28,-105],[27,-105],
+  [26,-105],[25,-105],[24,-104],[23,-106],[22,-105],[21,-105],[20,-105],
+  // back up through interior to close
+  [20,-87],[21,-87],[22,-87],[23,-90],[24,-92],[25,-97],[26,-97],
+  // Great Lakes shoreline hints
+  [46,-84],[45,-83],[44,-82],[43,-79],[43,-76],[44,-76],
+  // Hudson Bay rough
+  [51,-79],[52,-79],[53,-79],[54,-80],[55,-82],[56,-84],[57,-86],
+  [58,-88],[59,-90],[60,-91],[61,-90],[62,-90],[63,-91],[64,-92],
+  [63,-94],[62,-96],[61,-96],[60,-96],[59,-96],[58,-96],[57,-95],[56,-94],
+  [55,-93],[54,-92],[53,-90],[52,-88],[51,-86],[50,-84],[49,-82],
+  [48,-80],[47,-80],[46,-80],[45,-80],[44,-79],[43,-76],
+];
+
+function drawMinimap() {
+  var m = mmctx, CX = 62, CY = 62, R = 56;
+  m.clearRect(0, 0, 124, 124);
+  var route = getRoute();
+  var isEurope = route.isEurope;
+
+  // Centre the projection on the midpoint of the migration route
+  var cLat = (route.latS + route.latE) / 2;
+  var cLon = (route.lonS + route.lonE) / 2;
+
+  // Ocean gradient
+  var og = m.createRadialGradient(CX-12, CY-12, 3, CX, CY, R);
+  og.addColorStop(0, '#3070d0');
+  og.addColorStop(0.5, '#1850a8');
+  og.addColorStop(1, '#0c2870');
+  m.fillStyle = og; m.beginPath(); m.arc(CX, CY, R, 0, Math.PI*2); m.fill();
+
+  // Clip to globe disc
+  m.save(); m.beginPath(); m.arc(CX, CY, R, 0, Math.PI*2); m.clip();
+
+  if (isEurope) {
+    // Main landmass — rich greens, darker for forests
+    drawLandPoly(m, LAND_EUROPE, '#3d7d2a', CX, CY, R, cLat, cLon);
+    // Greenland — white/grey ice cap
+    drawLandPoly(m, GREENLAND_E, '#c8d8e0', CX, CY, R, cLat, cLon);
+    // Ice cap overlay on Greenland
+    drawLandPoly(m, [
+      [70,-50],[72,-50],[74,-48],[76,-44],[78,-40],[80,-38],[82,-36],[83,-32],
+      [82,-28],[80,-24],[78,-22],[76,-24],[74,-26],[72,-30],[70,-36],[68,-40],
+      [68,-46],[70,-50]
+    ], '#e8f0f4', CX, CY, R, cLat, cLon);
+    // Iceland
+    drawLandPoly(m, ICELAND, '#7aaa50', CX, CY, R, cLat, cLon);
+    // Svalbard archipelago
+    drawLandPoly(m, [[76,14],[77,16],[78,18],[79,20],[79,22],[78,24],[77,24],[76,22],[75,18],[75,16],[76,14]], '#a0c070', CX, CY, R, cLat, cLon);
+    // Scandinavia highlight (lighter green — open landscape)
+    drawLandPoly(m, [
+      [58,5],[60,5],[61,5],[62,6],[63,8],[64,10],[65,13],[66,14],[67,15],
+      [68,16],[69,18],[70,22],[71,26],[70,30],[68,28],[67,18],[66,14],
+      [65,13],[64,12],[63,10],[62,8],[61,6],[60,5],[59,5],[58,6],[57,8],
+      [57,12],[56,14],[56,16],[57,18],[58,17],[59,18],[60,17],[61,16],
+      [62,14],[63,13],[64,12],[63,10],[62,8],[61,5],[60,5],[59,5],[58,5]
+    ], '#4e9438', CX, CY, R, cLat, cLon);
+    // Netherlands / Belgium / Denmark — slightly lighter
+    drawLandPoly(m, [[51,3],[51,4],[52,5],[53,8],[54,9],[55,9],[55,10],[56,9],[57,10],[56,9],[55,8],[54,9],[53,8],[52,5],[52,4],[51,4],[51,3]], '#5a9e40', CX, CY, R, cLat, cLon);
+    // Arctic sea ice (rough cap above ~75°N)
+    drawLandPoly(m, [
+      [75,-10],[76,0],[77,10],[78,20],[79,30],[80,20],[81,10],[82,0],[83,-10],
+      [82,-20],[81,-30],[80,-20],[79,-10],[78,-5],[77,-8],[76,-10],[75,-10]
+    ], 'rgba(220,235,245,.55)', CX, CY, R, cLat, cLon);
+
+  } else {
+    // North America
+    drawLandPoly(m, LAND_NAMERICA, '#3d7d2a', CX, CY, R, cLat, cLon);
+    // Great Plains lighter band
+    drawLandPoly(m, [
+      [28,-104],[30,-100],[32,-99],[35,-100],[38,-99],[40,-98],[43,-98],
+      [46,-96],[49,-97],[52,-100],[55,-102],[57,-104],[55,-106],[53,-106],
+      [51,-104],[49,-106],[46,-104],[43,-102],[40,-102],[37,-102],
+      [34,-102],[31,-102],[28,-104]
+    ], '#5aaa3a', CX, CY, R, cLat, cLon);
+    // Rocky Mountains hint (darker)
+    drawLandPoly(m, [
+      [30,-108],[33,-108],[36,-108],[39,-106],[42,-106],[45,-108],[48,-110],
+      [51,-114],[54,-118],[52,-120],[49,-120],[46,-118],[43,-112],[40,-108],
+      [37,-107],[34,-107],[31,-107],[30,-108]
+    ], '#2a6020', CX, CY, R, cLat, cLon);
+    // Hudson Bay (ocean colour)
+    drawLandPoly(m, [
+      [51,-79],[52,-80],[54,-82],[56,-84],[58,-88],[60,-91],[62,-90],
+      [64,-92],[63,-94],[61,-96],[59,-96],[57,-95],[55,-93],[53,-90],
+      [51,-86],[50,-82],[49,-81],[50,-79],[51,-79]
+    ], '#1850a8', CX, CY, R, cLat, cLon);
+    // Great Lakes (ocean colour)
+    drawLandPoly(m, [[47,-88],[46,-85],[44,-83],[43,-79],[44,-76],[45,-77],[46,-80],[47,-84],[48,-88],[47,-88]], '#1850a8', CX, CY, R, cLat, cLon);
+    drawLandPoly(m, [[44,-78],[43,-79],[42,-79],[42,-81],[43,-83],[44,-82],[45,-81],[44,-78]], '#1850a8', CX, CY, R, cLat, cLon);
+    // Florida peninsula
+    drawLandPoly(m, [[30,-87],[29,-82],[27,-80],[25,-80],[25,-81],[26,-82],[27,-83],[28,-83],[29,-84],[30,-83],[30,-87]], '#4e9438', CX, CY, R, cLat, cLon);
+    // Arctic sea ice
+    drawLandPoly(m, [
+      [70,-160],[72,-155],[74,-150],[76,-145],[78,-140],[80,-130],[82,-120],
+      [83,-110],[82,-100],[80,-90],[78,-85],[76,-80],[74,-80],[72,-85],
+      [70,-90],[70,-100],[70,-110],[70,-120],[70,-130],[70,-140],[70,-150],[70,-160]
+    ], 'rgba(220,235,245,.55)', CX, CY, R, cLat, cLon);
+  }
+
+  m.restore(); // end clip
+
+  // Grid lines
+  m.strokeStyle = 'rgba(100,160,255,.15)'; m.lineWidth = .7;
+  // Latitude circles
+  for (var lat = 20; lat <= 80; lat += 20) {
+    var pts2 = [];
+    var firstPt = true;
+    m.beginPath();
+    for (var lon2 = -180; lon2 <= 180; lon2 += 5) {
+      var gp = globeProject(lat, lon2, CX, CY, R, cLat, cLon);
+      if (!gp.vis) { firstPt = true; continue; }
+      if (firstPt) { m.moveTo(gp.sx, gp.sy); firstPt=false; } else { m.lineTo(gp.sx, gp.sy); }
+    }
+    m.stroke();
+  }
+  // Longitude meridians
+  for (var lon3 = -180; lon3 < 180; lon3 += 30) {
+    m.beginPath(); var firstPt2=true;
+    for (var lat2 = -90; lat2 <= 90; lat2 += 5) {
+      var gp2 = globeProject(lat2, lon3, CX, CY, R, cLat, cLon);
+      if (!gp2.vis) { firstPt2=true; continue; }
+      if (firstPt2) { m.moveTo(gp2.sx, gp2.sy); firstPt2=false; } else { m.lineTo(gp2.sx, gp2.sy); }
+    }
+    m.stroke();
+  }
+
+  // Migration route dashed line
+  m.strokeStyle = 'rgba(160,255,80,.85)'; m.lineWidth = 2; m.setLineDash([3,2]);
+  m.beginPath(); var started = false;
+  for (var i = 0; i <= 30; i++) {
+    var tt = i/30;
+    var rlat = route.latS + (route.latE-route.latS)*tt;
+    var rlon = route.lonS + (route.lonE-route.lonS)*tt;
+    var gp3 = globeProject(rlat, rlon, CX, CY, R, cLat, cLon);
+    if (!gp3.vis) { started=false; continue; }
+    if (!started) { m.moveTo(gp3.sx, gp3.sy); started=true; } else { m.lineTo(gp3.sx, gp3.sy); }
+  }
+  m.stroke(); m.setLineDash([]);
+
+  // Goose position — pulsing dot
+  var gLat = route.latS + (route.latE-route.latS)*S.progress;
+  var gLon = route.lonS + (route.lonE-route.lonS)*S.progress;
+  var gp4 = globeProject(gLat, gLon, CX, CY, R, cLat, cLon);
+  if (gp4.vis) {
+    var pulse = .5 + .5*Math.sin(Date.now()*.006);
+    m.strokeStyle = 'rgba(120,255,60,'+(pulse*.7)+')'; m.lineWidth = 1.8;
+    m.beginPath(); m.arc(gp4.sx, gp4.sy, 5+pulse*4, 0, Math.PI*2); m.stroke();
+    m.fillStyle = '#ffffff'; m.beginPath(); m.arc(gp4.sx, gp4.sy, 4.5, 0, Math.PI*2); m.fill();
+    m.fillStyle = '#60ff20'; m.beginPath(); m.arc(gp4.sx, gp4.sy, 3, 0, Math.PI*2); m.fill();
+  }
+
+  // Globe sheen overlay
+  var sh = m.createRadialGradient(CX-18, CY-18, 2, CX, CY, R);
+  sh.addColorStop(0, 'rgba(255,255,255,.22)');
+  sh.addColorStop(.35, 'rgba(255,255,255,.04)');
+  sh.addColorStop(1, 'rgba(0,0,60,.2)');
+  m.fillStyle = sh; m.beginPath(); m.arc(CX, CY, R, 0, Math.PI*2); m.fill();
+
+  // Border ring
+  m.strokeStyle = 'rgba(110,205,85,.6)'; m.lineWidth = 1.8;
+  m.beginPath(); m.arc(CX, CY, R, 0, Math.PI*2); m.stroke();
+
+  // Region label
+  document.getElementById('mmlabel').textContent = getRegion(S.progress).n;
+}
+
+// ── GAME LOOP ──────────────────────────────────
+function loop(ts) {
+  if (!running) return;
+  var dt = Math.min((ts-S.lastTime)/16, 3);
+  S.lastTime = ts;
+  update(dt);
+  render();
+  raf = requestAnimationFrame(loop);
+}
+
+function update(dt) {
+  var W=gc.width, H=gc.height;
+  var hs=0.007;
+  if (K['ArrowLeft']||K['a'])  S.gx = Math.max(.02, S.gx-hs*dt);
+  if (K['ArrowRight']||K['d']) S.gx = Math.min(.98, S.gx+hs*dt);
+  if (K[' ']||K['ArrowUp']||K['w']) shootPoop(W,H);
+  S.scroll += SCROLL_SPEED*dt;
+  S.progress = Math.min(1, S.scroll/(TOTAL_BANDS*BAND_H));
+  if (S.invincible>0) S.invincible-=dt;
+  var tile = terrainUnderGoose();
+  var dmg = TDMG[tile] != null ? TDMG[tile] : 1;
+  if (dmg<0) {
+    S.health = Math.min(100, S.health+Math.abs(dmg)*.07*dt);
+    S.score += .2*dt;
+    if (Math.random()<.025*dt) flashEl('fgreen');
+    if (!wasOnGreen) { sndGreenPing(); wasOnGreen=true; }
+  } else {
+    wasOnGreen=false;
+    if (S.invincible<=0) S.health = Math.max(0, S.health-dmg*.055*dt);
+  }
+  if (S.health<=0) { loseLife(); return; }
+  S.energy = tile==='green' ? Math.min(100,S.energy+.28*dt) : Math.max(0,S.energy-.035*dt);
+  S.score += .1*dt;
+  if (eagleScreechCooldown>0) eagleScreechCooldown-=dt;
+  maybeSpawn(dt,W); updateEnemies(dt,W,H); updateBullets(dt,W,H);
+  S.particles = S.particles.filter(function(p){ p.x+=p.vx*dt; p.y+=p.vy*dt; p.al-=.024*dt; p.r*=.97; return p.al>.02; });
+  S.popups    = S.popups.filter(function(p){ p.y+=p.vy*dt; p.al-=.018*dt; return p.al>.02; });
+  if (S.progress>=1) { endGame(true); return; }
+  document.getElementById('hfill').style.width = S.health+'%';
+  document.getElementById('efill').style.width = S.energy+'%';
+  document.getElementById('hfill').style.background = S.health>50?'linear-gradient(90deg,#c83030,#ff5030)':S.health>25?'linear-gradient(90deg,#a03800,#de5800)':'linear-gradient(90deg,#800,#b00)';
+  var reg = getRegion(S.progress);
+  document.getElementById('hregion').textContent = '📍 '+reg.n;
+  document.getElementById('hprog').textContent   = 'Progress: '+Math.floor(S.progress*100)+'%';
+  document.getElementById('hscore').textContent  = 'Score: '+Math.floor(S.score);
+  document.getElementById('tinfo').textContent   = TNAME[tile]||'';
+}
+
+function render() {
+  var W=gc.width, H=gc.height;
+  gctx.clearRect(0,0,W,H);
+  drawTerrain(W,H);
+  // Sky
+  var sg=gctx.createLinearGradient(0,0,0,H*.12);
+  sg.addColorStop(0,'rgba('+(28+S.progress*22)+','+(55+S.progress*65)+','+(95+S.progress*65)+',.62)');
+  sg.addColorStop(1,'rgba(0,0,0,0)');
+  gctx.fillStyle=sg; gctx.fillRect(0,0,W,H*.12);
+  // Vignette
+  var vg=gctx.createRadialGradient(W/2,H/2,H*.18,W/2,H/2,H*.7);
+  vg.addColorStop(0,'transparent'); vg.addColorStop(1,'rgba(0,10,0,.38)');
+  gctx.fillStyle=vg; gctx.fillRect(0,0,W,H);
+  // Particles
+  S.particles.forEach(function(p){ gctx.globalAlpha=p.al; gctx.fillStyle=p.col; gctx.beginPath(); gctx.arc(p.x,p.y,p.r,0,Math.PI*2); gctx.fill(); });
+  gctx.globalAlpha=1;
+  // Score popups
+  gctx.font='bold 15px "Playfair Display",serif'; gctx.textAlign='center';
+  S.popups.forEach(function(p){
+    gctx.globalAlpha=p.al;
+    gctx.strokeStyle='rgba(0,0,0,.6)'; gctx.lineWidth=3;
+    gctx.fillStyle=p.col;
+    gctx.strokeText(p.text,p.x,p.y); gctx.fillText(p.text,p.x,p.y);
+  });
+  gctx.globalAlpha=1; gctx.textAlign='left';
+  // Bullets
+  S.bullets.forEach(function(b){
+    if (b.poop) { drawPoop(gctx,b.x,b.y,8); }
+    else if (b.enemy) {
+      gctx.fillStyle='#ffe040'; gctx.beginPath(); gctx.arc(b.x,b.y,4,0,Math.PI*2); gctx.fill();
+      gctx.fillStyle='rgba(255,200,20,.3)'; gctx.beginPath(); gctx.arc(b.x-b.vx*2,b.y-b.vy*2,3,0,Math.PI*2); gctx.fill();
+    }
+  });
+  // Enemies
+  S.enemies.forEach(function(e){
+    if (e.type==='eagle') drawEagle(gctx,e.x,e.y,e.sc);
+    else drawHunter(gctx,e.x,e.y,e.sc);
+  });
+  // Goose
+  var gsx=S.gx*W, gsy=H-68;
+  if (S.invincible>0 && Math.floor(Date.now()/80)%2===0) gctx.globalAlpha=.28;
+  drawGoose(gctx, selectedGoose, gsx, gsy, 1.55);
+  gctx.globalAlpha=1;
+  if (terrainUnderGoose()==='green') {
+    gctx.strokeStyle='rgba(70,255,70,.3)'; gctx.lineWidth=3;
+    gctx.beginPath(); gctx.arc(gsx,gsy,30,0,Math.PI*2); gctx.stroke();
+  }
+  drawMinimap();
+}
+
+// ── GAME CONTROL ───────────────────────────────
+function startGame() {
+  // Resume AudioContext suspended by browser autoplay policy
+  try { if (audioCtx) audioCtx.resume(); } catch(e) {}
+  document.getElementById('intro').style.display='none';
+  var gEl = document.getElementById('game');
+  gEl.style.display = 'block';
+  gc    = document.getElementById('gc');
+  gc.width  = window.innerWidth;
+  gc.height = window.innerHeight;
+  gctx  = gc.getContext('2d');
+  mmctx = document.getElementById('mmcanvas').getContext('2d');
+  window.addEventListener('resize', function(){ gc.width=window.innerWidth; gc.height=window.innerHeight; });
+  genBands();
+  S.gx=.5; S.health=100; S.energy=100; S.score=0; S.lives=3;
+  S.scroll=0; S.progress=0; S.invincible=0;
+  S.bullets=[]; S.enemies=[]; S.particles=[]; S.popups=[];
+  S.lastTime = performance.now();
+  spawnTimer=80; poopCooldown=0;
+  running=true;
+  renderLives();
+  var hint=document.getElementById('hint');
+  hint.style.opacity='1';
+  setTimeout(function(){ hint.style.opacity='0'; }, 5500);
+  raf = requestAnimationFrame(loop);
+}
+
+function endGame(won) {
+  running = false;
+  if (won) sndVictory(); else sndGameOver();
+  var dest = getRoute().to==='Norway' ? 'the Arctic' : 'the Canadian breeding grounds';
+  document.getElementById('mtitle').textContent = won ? '🎉 Breeding Grounds Reached!' : '💀 Migration Failed';
+  document.getElementById('mbody').textContent  = won
+    ? 'Your '+gooseName()+' surfed the green wave to '+dest+'! Score: '+Math.floor(S.score)
+    : 'Your '+gooseName()+' fell at '+Math.floor(S.progress*100)+'% of the journey. Score: '+Math.floor(S.score);
+  document.getElementById('msgbox').style.display='block';
+}
+
+function restartGame() {
+  document.getElementById('msgbox').style.display='none';
+  startGame();
+}
+
+function pickGoose(t) {
+  selectedGoose = t;
+  ['barnacle','whitefront','snow','canada'].forEach(function(id){
+    document.getElementById('c-'+id).classList.toggle('sel', id===t);
+  });
+}
+
+function gooseName() {
+  return {barnacle:'Barnacle Goose', whitefront:'White-fronted Goose', snow:'Snow Goose', canada:'Canada Goose'}[selectedGoose]||'Goose';
+}
+
+// ── WIRE UP BUTTONS (no inline onclick) ────────
+document.getElementById('startBtn').addEventListener('click', startGame);
+document.getElementById('retryBtn').addEventListener('click', restartGame);
+['barnacle','whitefront','snow','canada'].forEach(function(t){
+  document.getElementById('c-'+t).addEventListener('click', function(){ pickGoose(t); });
+});
+
+// Difficulty slider
+var DIFF_LABELS = ['Peaceful 🌿', 'Easy', 'Normal', 'Hard', 'Brutal 💀'];
+var sliderEl = document.getElementById('diffSlider');
+var labelEl  = document.getElementById('diffLabel');
+function updateDiffLabel() {
+  difficulty = parseInt(sliderEl.value, 10);
+  labelEl.textContent = DIFF_LABELS[difficulty-1];
+}
+sliderEl.addEventListener('input', updateDiffLabel);
+updateDiffLabel(); // set initial label
+
+// Draw previews once DOM is ready
+renderPreviews();
+
+})(); // end IIFE
+</script>
+</body>
+</html>
