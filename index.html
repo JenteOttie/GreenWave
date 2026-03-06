@@ -53,7 +53,6 @@ body{background:#060e06;font-family:'Lora',serif;overflow:hidden;user-select:non
 .btrack{width:100px;height:8px;background:rgba(0,0,0,.55);border-radius:4px;border:1px solid rgba(255,255,255,.1);overflow:hidden;}
 .bfill{height:100%;border-radius:4px;transition:width .18s;}
 #hfill{background:linear-gradient(90deg,#c83030,#ff5030);}
-#efill{background:linear-gradient(90deg,#1870d0,#38b8ff);}
 #hudright{position:absolute;top:10px;right:12px;color:rgba(185,228,105,.85);font-size:.76rem;text-align:right;pointer-events:none;line-height:1.75;z-index:10;}
 #lives-display{position:absolute;top:142px;left:50%;transform:translateX(-50%);display:flex;gap:5px;pointer-events:none;z-index:10;}
 #minimap{position:absolute;top:6px;left:50%;transform:translateX(-50%);width:124px;height:134px;pointer-events:none;z-index:10;}
@@ -118,6 +117,12 @@ body{background:#060e06;font-family:'Lora',serif;overflow:hidden;user-select:non
       <span class="diff-label right">🦅 Hard</span>
       <span class="diff-value" id="diffLabel">Normal</span>
     </div>
+    <div class="diff-row" style="margin-top:11px;gap:10px;">
+      <label id="unlimitedLabel" style="display:flex;align-items:center;gap:8px;cursor:pointer;color:rgba(180,230,90,.85);font-size:.82rem;">
+        <input type="checkbox" id="unlimitedPoop" style="width:15px;height:15px;accent-color:#78d030;cursor:pointer;">
+        Unlimited 💩 poop ammo
+      </label>
+    </div>
   </div>
 
   <button class="sbtn" id="startBtn">Begin Migration →</button>
@@ -132,7 +137,7 @@ body{background:#060e06;font-family:'Lora',serif;overflow:hidden;user-select:non
   <canvas id="gc"></canvas>
   <div id="hud">
     <div class="bar-row"><div class="blabel">Health</div><div class="btrack"><div class="bfill" id="hfill" style="width:100%"></div></div></div>
-    <div class="bar-row"><div class="blabel">Energy</div><div class="btrack"><div class="bfill" id="efill" style="width:100%"></div></div></div>
+    <div class="bar-row" style="margin-top:2px"><div class="blabel">💩 Poop</div><div id="ammo-display" style="display:flex;gap:3px;align-items:center;flex-wrap:wrap;max-width:120px;"></div></div>
   </div>
   <div id="lives-display"></div>
   <div id="hudright">
@@ -359,6 +364,29 @@ function sndGreenPing() {
     var ctx = getAudio(), t = ctx.currentTime;
     playTone(880, 'sine', 0.07, 0.005, 0.04, 0.3, t, ctx);
     playTone(1320, 'sine', 0.04, 0.005, 0.02, 0.25, t+0.04, ctx);
+  } catch(e) {}
+}
+
+// PICKUP — collect grass/poop ammo
+function sndPickup() {
+  try {
+    var ctx = getAudio(), t = ctx.currentTime;
+    playTone(660, 'sine', 0.14, 0.005, 0.06, 0.18, t, ctx);
+    playTone(880, 'sine', 0.10, 0.005, 0.04, 0.14, t+0.08, ctx);
+  } catch(e) {}
+}
+
+// NO AMMO click — dry empty click
+function sndEmpty() {
+  try {
+    var ctx = getAudio(), t = ctx.currentTime;
+    var buf = ctx.createBuffer(1, ctx.sampleRate*0.04, ctx.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i=0; i<d.length; i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/d.length, 3) * 0.15;
+    var src = ctx.createBufferSource(); src.buffer = buf;
+    var hpf = ctx.createBiquadFilter(); hpf.type='highpass'; hpf.frequency.value=800;
+    src.connect(hpf); hpf.connect(ctx.destination);
+    src.start(t);
   } catch(e) {}
 }
 
@@ -621,12 +649,14 @@ function terrainUnderGoose() {
 var gc, gctx, mmctx, running=false, raf=null;
 var selectedGoose = 'barnacle';
 var difficulty = 3; // 1=easiest … 5=hardest
+var unlimitedPoop = false;
 var spawnTimer = 80, poopCooldown = 0;
 
 var S = {
-  gx:.5, health:100, energy:100, score:0, lives:3,
+  gx:.5, health:100, score:0, lives:3,
   scroll:0, progress:0, invincible:0,
-  bullets:[], enemies:[], particles:[], popups:[], lastTime:0
+  bullets:[], enemies:[], particles:[], popups:[], pickups:[], lastTime:0,
+  poopAmmo: 10
 };
 
 // ── HELPERS ────────────────────────────────────
@@ -766,9 +796,118 @@ function maybeSpawn(dt, W) {
 }
 function shootPoop(W, H) {
   if (poopCooldown>0) return;
+  if (!unlimitedPoop && S.poopAmmo<=0) { sndEmpty(); poopCooldown=12; return; }
+  if (!unlimitedPoop) S.poopAmmo--;
   S.bullets.push({x:S.gx*W, y:H-98, vx:0, vy:-7, enemy:false, poop:true});
   poopCooldown = 18;
   sndShoot();
+  updateAmmoDisplay();
+}
+
+// ── PICKUPS (grass icons = poop ammo) ────────────
+var pickupSpawnDist = 0; // tracks scroll distance since last pickup
+
+function maybeSpawnPickup() {
+  pickupSpawnDist += SCROLL_SPEED;
+  // Spawn a pickup roughly every 420px of scroll (about every ~7 bands)
+  if (pickupSpawnDist >= 420) {
+    pickupSpawnDist = 0;
+    var b = getBand(curBandIdx() + 4); // a few bands ahead
+    // Place it inside the green corridor
+    var x = (b.cx + (Math.random()-.5)*b.cw*1.4);
+    x = Math.max(0.05, Math.min(0.95, x));
+    S.pickups.push({ nx: x, bandIdx: curBandIdx()+4, alive: true });
+  }
+}
+
+function updatePickups(W, H) {
+  var gsx = S.gx*W, gsy = H-68;
+  S.pickups = S.pickups.filter(function(pk) {
+    if (!pk.alive) return false;
+    // Convert normalised band position to screen y
+    var bandScreenY = H - (pk.bandIdx - curBandIdx()) * BAND_H + (S.scroll % BAND_H);
+    pk.sy = bandScreenY;
+    pk.sx = pk.nx * W;
+    // Collect if goose is close
+    var dx = pk.sx - gsx, dy = pk.sy - gsy;
+    if (Math.sqrt(dx*dx + dy*dy) < 32) {
+      S.poopAmmo += 5;
+      sndPickup();
+      updateAmmoDisplay();
+      // spawn a little sparkle
+      for (var i=0; i<8; i++) {
+        var a=Math.random()*Math.PI*2, sp=1.5+Math.random()*2.5;
+        S.particles.push({x:pk.sx,y:pk.sy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:3+Math.random()*3,al:1,col:'#a0ff40'});
+      }
+      return false;
+    }
+    // Despawn if scrolled well off bottom of screen
+    return pk.sy < H + 80;
+  });
+}
+
+function drawPickups(W, H) {
+  var t = Date.now() * 0.003;
+  S.pickups.forEach(function(pk) {
+    if (!pk.sy) return;
+    var bob = Math.sin(t + pk.nx*10) * 3;
+    var x = pk.sx, y = pk.sy + bob;
+    // Outer glow ring
+    var pulse = 0.5 + 0.5*Math.sin(t*2 + pk.nx*5);
+    gctx.strokeStyle = 'rgba(80,255,80,'+(0.25+pulse*0.25)+')';
+    gctx.lineWidth = 2;
+    gctx.beginPath(); gctx.arc(x, y, 16+pulse*3, 0, Math.PI*2); gctx.stroke();
+    // Green circle background
+    gctx.fillStyle = 'rgba(20,80,10,0.82)';
+    gctx.beginPath(); gctx.arc(x, y, 13, 0, Math.PI*2); gctx.fill();
+    gctx.strokeStyle = 'rgba(100,230,60,0.9)';
+    gctx.lineWidth = 1.5;
+    gctx.beginPath(); gctx.arc(x, y, 13, 0, Math.PI*2); gctx.stroke();
+    // Grass + poop emoji
+    gctx.font = '13px serif';
+    gctx.textAlign = 'center';
+    gctx.textBaseline = 'middle';
+    gctx.fillText('🌿', x, y);
+    gctx.textBaseline = 'alphabetic';
+    // +5 label above
+    gctx.font = 'bold 9px "Playfair Display",serif';
+    gctx.fillStyle = '#c8ff60';
+    gctx.strokeStyle = 'rgba(0,0,0,0.7)';
+    gctx.lineWidth = 2.5;
+    gctx.strokeText('+5💩', x, y-17);
+    gctx.fillText('+5💩', x, y-17);
+    gctx.textAlign = 'left';
+  });
+}
+
+function updateAmmoDisplay() {
+  var d = document.getElementById('ammo-display');
+  if (!d) return;
+  // Hide entire poop row when unlimited
+  var row = d.parentElement;
+  if (row) row.style.display = unlimitedPoop ? 'none' : 'flex';
+  if (unlimitedPoop) return;
+  d.innerHTML = '';
+  var max = Math.min(S.poopAmmo, 20); // show up to 20 icons
+  for (var i=0; i<max; i++) {
+    var span = document.createElement('span');
+    span.textContent = '💩';
+    span.style.fontSize = '10px';
+    span.style.lineHeight = '1';
+    d.appendChild(span);
+  }
+  if (S.poopAmmo > 20) {
+    var more = document.createElement('span');
+    more.textContent = '+' + (S.poopAmmo-20);
+    more.style.cssText = 'font-size:9px;color:#cef060;font-family:Lora,serif;';
+    d.appendChild(more);
+  }
+  if (S.poopAmmo === 0) {
+    var empty = document.createElement('span');
+    empty.textContent = 'EMPTY';
+    empty.style.cssText = 'font-size:9px;color:rgba(255,100,60,.8);font-family:Lora,serif;font-style:italic;';
+    d.appendChild(empty);
+  }
 }
 
 // ── TERRAIN DRAW ───────────────────────────────
@@ -1119,15 +1258,14 @@ function update(dt) {
     if (S.invincible<=0) S.health = Math.max(0, S.health-dmg*.055*dt);
   }
   if (S.health<=0) { loseLife(); return; }
-  S.energy = tile==='green' ? Math.min(100,S.energy+.28*dt) : Math.max(0,S.energy-.035*dt);
   S.score += .1*dt;
   if (eagleScreechCooldown>0) eagleScreechCooldown-=dt;
   maybeSpawn(dt,W); updateEnemies(dt,W,H); updateBullets(dt,W,H);
+  if (!unlimitedPoop) { maybeSpawnPickup(); updatePickups(W,H); }
   S.particles = S.particles.filter(function(p){ p.x+=p.vx*dt; p.y+=p.vy*dt; p.al-=.024*dt; p.r*=.97; return p.al>.02; });
   S.popups    = S.popups.filter(function(p){ p.y+=p.vy*dt; p.al-=.018*dt; return p.al>.02; });
   if (S.progress>=1) { endGame(true); return; }
   document.getElementById('hfill').style.width = S.health+'%';
-  document.getElementById('efill').style.width = S.energy+'%';
   document.getElementById('hfill').style.background = S.health>50?'linear-gradient(90deg,#c83030,#ff5030)':S.health>25?'linear-gradient(90deg,#a03800,#de5800)':'linear-gradient(90deg,#800,#b00)';
   var reg = getRegion(S.progress);
   document.getElementById('hregion').textContent = '📍 '+reg.n;
@@ -1169,6 +1307,9 @@ function render() {
       gctx.fillStyle='rgba(255,200,20,.3)'; gctx.beginPath(); gctx.arc(b.x-b.vx*2,b.y-b.vy*2,3,0,Math.PI*2); gctx.fill();
     }
   });
+  // Pickups
+  if (!unlimitedPoop) drawPickups(W,H);
+
   // Enemies
   S.enemies.forEach(function(e){
     if (e.type==='eagle') drawEagle(gctx,e.x,e.y,e.sc);
@@ -1200,13 +1341,15 @@ function startGame() {
   mmctx = document.getElementById('mmcanvas').getContext('2d');
   window.addEventListener('resize', function(){ gc.width=window.innerWidth; gc.height=window.innerHeight; });
   genBands();
-  S.gx=.5; S.health=100; S.energy=100; S.score=0; S.lives=3;
+  S.gx=.5; S.health=100; S.score=0; S.lives=3;
   S.scroll=0; S.progress=0; S.invincible=0;
-  S.bullets=[]; S.enemies=[]; S.particles=[]; S.popups=[];
+  S.bullets=[]; S.enemies=[]; S.particles=[]; S.popups=[]; S.pickups=[];
+  S.poopAmmo=10; pickupSpawnDist=0;
   S.lastTime = performance.now();
   spawnTimer=80; poopCooldown=0;
   running=true;
   renderLives();
+  updateAmmoDisplay();
   var hint=document.getElementById('hint');
   hint.style.opacity='1';
   setTimeout(function(){ hint.style.opacity='0'; }, 5500);
@@ -1257,6 +1400,17 @@ function updateDiffLabel() {
 }
 sliderEl.addEventListener('input', updateDiffLabel);
 updateDiffLabel(); // set initial label
+
+// Unlimited poop checkbox
+var unlimitedEl = document.getElementById('unlimitedPoop');
+unlimitedEl.addEventListener('change', function() {
+  unlimitedPoop = unlimitedEl.checked;
+  // If toggled during a live game, tidy up immediately
+  if (running) {
+    if (unlimitedPoop) S.pickups = [];
+    updateAmmoDisplay();
+  }
+});
 
 // Draw previews once DOM is ready
 renderPreviews();
